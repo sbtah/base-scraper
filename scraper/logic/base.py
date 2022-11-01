@@ -1,9 +1,9 @@
-import time
-from urllib.parse import urljoin
-
+import asyncio
 import httpx
+
 from lxml.html import HtmlElement, HTMLParser, fromstring
 from selenium import webdriver
+from selenium.webdriver import DesiredCapabilities
 from selenium.common.exceptions import (
     ElementNotVisibleException,
     NoSuchElementException,
@@ -34,6 +34,12 @@ class BaseScraper:
         if self.teardown:
             self.driver.quit()
 
+    def get_random_user_agent(self):
+        pass
+
+    def get_random_proxy(self):
+        pass
+
     @property
     def user_agent(self):
         return "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36"
@@ -45,12 +51,16 @@ class BaseScraper:
             options = webdriver.ChromeOptions()
             options.add_argument("--width=1920")
             options.add_argument("--height=1080")
+            # TODO:
+            # Call get_random_user_agent to use different User-Agent server on each request..
             options.add_argument(self.user_agent)
             options.add_argument("--no-sandbox")
             options.add_argument("--start-maximized")
             options.add_argument("--single-process")
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--incognito")
+            # TODO:
+            # Call get_random_proxy to use different proxy server on each request..
             # self.options.add_argument('--proxy-server=176.9.220.108:8080')
             # self.options.add_argument("--headless")
             options.add_argument("--disable-blink-features")
@@ -62,6 +72,7 @@ class BaseScraper:
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             self._driver = webdriver.Remote(
                 command_executor="http://localhost:4444",
+                desired_capabilities=DesiredCapabilities.CHROME,
                 options=options,
             )
 
@@ -73,6 +84,9 @@ class BaseScraper:
         :param url: Requested URL.
         Returns driver's page_source.
         """
+
+        assert url, "Request failed, No proper url for GET."
+
         try:
             self.driver.get(url)
             logging.info(f"Requesting: {url}")
@@ -86,7 +100,7 @@ class BaseScraper:
         """
         Request specifed url.
         :param url: Requested URL.
-        Return's text response.s
+        Return's text response.
         """
 
         # TODO:
@@ -94,6 +108,8 @@ class BaseScraper:
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
         }
+
+        assert url, "Request failed, No proper url for GET."
 
         try:
             response = httpx.get(url, timeout=30, headers=headers)
@@ -112,3 +128,82 @@ class BaseScraper:
             return None
         except Exception as e:
             logging.error(f"(python_get) Exception: {e}")
+
+    async def async_get(self, session, url):
+        """
+        Request url with async.
+        :param url: Requested URL.
+        :param session: Session is used while connecting.
+        Return's text response.
+        """
+        response = await session.get(url)
+        return response.text
+
+    async def get_pages(self, session, urls_list):
+        """ """
+        tasks = []
+        for url in urls_list:
+            tasks.append(asyncio.create_task(self.async_get(session, url)))
+
+        requested = await asyncio.gather(*tasks)
+        return requested
+
+    async def execute_async_get(self, urls_list):
+        """ """
+        async with httpx.AsyncClient() as session:
+            data = await self.get_pages(session=session, urls_list=urls_list)
+            return data
+
+    def run_crawler_async(self, function):
+        asyncio.run(function)
+
+    def parse_response(self, response):
+        """
+        Parse text response from get.
+        Returns HtmlElement.
+        :param response: Text response from GET.
+        """
+
+        assert response, logging.error(
+            "Parsing response failed, received invalid response object."
+        )
+
+        try:
+            element = fromstring(response)
+            logging.info("Parsing response to HtmlElement.")
+            return element
+        except Exception as e:
+            logging.error(f"(parse_response) Exception: {e}")
+
+    def refresh_current_session(self):
+        """
+        Delete all cookies and refresh browser while using Selenium Driver.
+        """
+        self.driver.delete_all_cookies()
+        self.driver.refresh()
+        logging.info("Browser refreshed, cookies deleted.")
+
+    def close_driver(self):
+        """
+        Close current driver.
+        """
+        if self.driver:
+            self.driver.close()
+
+    def return_selenium_element(self, xpath_to_search):
+        """
+        Finds element by specified Xpath.
+        Return Selenium element to interact with.
+        """
+        try:
+            element = self.driver.find_element(
+                By.XPATH,
+                xpath_to_search,
+            )
+            return element
+        except ElementNotVisibleException as e:
+            logging.error(f"Selenium element not visible: {e}")
+            return None
+        except Exception as e:
+            logging.error(f"Selenium element not visible: {e}")
+            return None
