@@ -1,7 +1,7 @@
 import asyncio
 import httpx
 
-from lxml.html import HtmlElement, HTMLParser, fromstring
+from lxml.html import HtmlElement, HTMLParser, fromstring, tostring
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from selenium.common.exceptions import (
@@ -154,10 +154,10 @@ class BaseScraper:
             data = await self.get_pages(session=session, urls_list=urls_list)
             return data
 
-    def run_crawler_async(self, function):
+    def run_async(self, function):
         asyncio.run(function)
 
-    def parse_response(self, response):
+    def parse_response(self, response) -> HtmlElement:
         """
         Parse text response from get.
         Returns HtmlElement.
@@ -175,6 +175,24 @@ class BaseScraper:
         except Exception as e:
             logging.error(f"(parse_response) Exception: {e}")
 
+    def parse_driver_response(self) -> HtmlElement:
+        """
+        Used with selenium driver current page_source.
+        Doesn't need HTMLelement as an input.
+        Parses current page and produce a HTMLElement from it.
+        """
+
+        try:
+            hp = HTMLParser(encoding="utf-8")
+            element = fromstring(
+                self.driver.page_source, base_url=self.driver.current_url, parser=hp
+            )
+            logging.info(f"Parsing page to HtmlElement at: {self.driver.current_url}")
+            return element
+        except Exception as e:
+            logging.error(f"Error parsing page to HTML: {e}")
+            return None
+
     def refresh_current_session(self):
         """
         Delete all cookies and refresh browser while using Selenium Driver.
@@ -190,8 +208,9 @@ class BaseScraper:
         if self.driver:
             self.driver.close()
 
-    def return_selenium_element(self, xpath_to_search):
+    def find_selenium_element(self, xpath_to_search):
         """
+        Used with Selenium driver.
         Finds element by specified Xpath.
         Return Selenium element to interact with.
         """
@@ -205,5 +224,46 @@ class BaseScraper:
             logging.error(f"Selenium element not visible: {e}")
             return None
         except Exception as e:
-            logging.error(f"Selenium element not visible: {e}")
+            logging.error(f"(find_selenium_element) exception: {e}")
+            return None
+
+    def initialize_html_element(self, selenium_element):
+        """
+        Used with Selenium driver.
+        Loads a part of content that is initialized on button click.
+        Checks if desired element is in HTML
+        Returns HTMLElement on success that can be parsed if other methods.
+        ::param xpath_to_click:: Xpath to element that we have to click to
+                                load desired element (ie: modal?).
+        """
+        try:
+            selenium_element.click()
+            logging.info("Successfully clicked on element initializer button.")
+            random_sleep_small()
+            element = self.parse_driver_response()
+            return element
+        except NoSuchElementException:
+            logging.error(
+                "Failed at finding starting element to click. Maybe element is already picked?"
+            )
+            return None
+
+    def find_all_elements(self, html_element, xpath_to_search):
+        """
+        Xpath have to lead to entire HTML tag not attributes
+        Finds elements by Xpath on given HTMLElement.
+        Returns lists of HtmlElements for further processing.
+        """
+        try:
+            elements_list = html_element.xpath(xpath_to_search)
+            if elements_list:
+                logging.info(
+                    f"(find_all_elements), returned: {len(elements_list)} elements."
+                )
+                return elements_list
+            else:
+                logging.error("(find_all_elements) Returned an empty list.")
+                return None
+        except Exception as e:
+            logging.error(f"(find_all_elements) Some other exception: {e}")
             return None
