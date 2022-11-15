@@ -25,7 +25,7 @@ class Castorama(EcommerceScraper):
     @property
     def all_products_xpath(self):
         """Xpath that returns list of all product's <a> tags."""
-        return ""
+        return './/div[contains(@class, "product-tail__image")]/a[contains(@class, "link-base") and @title]'
 
     @property
     def products_names_attribute_xpath(self):
@@ -34,12 +34,13 @@ class Castorama(EcommerceScraper):
 
     @property
     def current_product_page_xpath(self):
-        return './/ul[contains(@class, "navigation-base")]//li[contains(@class, "base__item") and .//a[contains(@class, "active")]]'
+        return './/ul[contains(@class, "navigation-base")]//li[contains(@class, "base__item") and .//a[contains(@class, "--active")]]'
 
     @property
     def last_product_page_xpath(self):
         """Explicit Xpath that returns value of last product page"""
-        return './/ul[contains(@class, "navigation-base")]//li[contains(@class, "base__item") and .//a[contains(@class, "item-link")]][last()]'
+        # Currently you can't find last page xpath.
+        return ""
 
     @property
     def next_product_page_button_xpath(self):

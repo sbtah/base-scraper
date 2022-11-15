@@ -40,6 +40,7 @@ class BaseScraper:
     def __exit__(self, exc_type, exc_val, exc_tb):
         #  and self.get_with_selenium
         if self.teardown:
+            self.driver.delete_all_cookies()
             self.driver.quit()
 
     def get_random_user_agent(self):
@@ -83,15 +84,17 @@ class BaseScraper:
             options.add_argument("--ignore-certificate-errors")
             options.add_experimental_option("useAutomationExtension", False)
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_argument("--start-maximized")
 
             # Locally installed browser just for testing.
-            options.add_argument("--start-maximized")
             self._driver = webdriver.Chrome(
                 service=Service(ChromeDriverManager().install()),
                 options=options,
                 desired_capabilities=DesiredCapabilities.CHROME,
             )
-            # self._driver.implicitly_wait(5)
+            self._driver.implicitly_wait(2)
+
+            # Selenium Grid Settings
             # For dockerized chrome.
             # self._driver = webdriver.Remote(
             #     command_executor="http://localhost:4444",
@@ -110,7 +113,7 @@ class BaseScraper:
 
         try:
             self.driver.get(url)
-            logging.debug(f"Requesting with selenium: {url}")
+            logging.info(f"Requesting with selenium: {url}")
             random_sleep_small()
             return self.driver.page_source
         except Exception as e:
@@ -132,7 +135,7 @@ class BaseScraper:
 
         try:
             response = httpx.get(url, timeout=30, headers=headers)
-            logging.debug(f"Requesting with python: {url}")
+            logging.info(f"Requesting with python: {url}")
             random_sleep_small()
             # response.raise_for_status()
             return response.text
@@ -214,20 +217,18 @@ class BaseScraper:
             logging.error(f"Error parsing page to HTML: {e}")
             return None
 
-    def refresh_current_session(self):
+    def do_cleanup(self):
         """
-        Delete all cookies and refresh browser while using Selenium Driver.
-        """
-        self.driver.delete_all_cookies()
-        self.driver.refresh()
-        logging.debug("Browser refreshed, cookies deleted.")
-
-    def close_driver(self):
-        """
-        Close current driver.
+        Delete all cookies and refresh browser and quit Selenium driver.
         """
         if self.driver:
+            self.driver.delete_all_cookies()
+
             self.driver.quit()
+            self._driver = None
+            logging.debug("Driver exited, cookies deleted.")
+        else:
+            logging.info("Driver was already closed.")
 
     def find_selenium_element(
         self,
@@ -341,8 +342,7 @@ class BaseScraper:
             random_sleep_small_l2()
         except NoSuchElementException:
             logging.error(
-                "Failed at finding starting element to click.\
-                    Maybe element is already picked?"
+                "Failed at finding element to click. Maybe element was already clicked?"
             )
             return None
 
@@ -355,7 +355,7 @@ class BaseScraper:
             html_element.xpath(xpath_to_search)[0]
             return True
         except IndexError:
-            logging.error(
+            logging.debug(
                 f"(if_xpath_in_element) Search for: ('{xpath_to_search}') returned an empty list."
             )
             return None
@@ -366,7 +366,7 @@ class BaseScraper:
     def extract_urls_with_names(self, html_element, xpath_to_search, name_attr_xpath):
         """
         Used for traversing page's url structure.
-        Find all main Urls and 'Names' in given HtmlElements.
+        Find all Urls and 'Names' in given HtmlElements.
         Returns generator of tuples, containing (url, name).
         :param xpath_to_search: Xpath that should return list of <a> tags.
         :param name_xpath: Can be set to ./text() or @title,

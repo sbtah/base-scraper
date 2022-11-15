@@ -5,6 +5,7 @@ from scraper.helpers.randoms import (
     random_sleep_small_l2,
 )
 from scraper.logic.base import BaseScraper
+import time
 
 
 class EcommerceScraper(BaseScraper):
@@ -63,37 +64,30 @@ class EcommerceScraper(BaseScraper):
         """Xpath to element that closes cookies banner on click."""
         return ""
 
-    def selenium_get(self, url):
-        """
-        Custom get that finds a Cookie Policy banner and closes it.
-        Needs :
-        self.cookies_close_xpath.
-        """
-        super().selenium_get(url)
-        element = self.parse_driver_response()
-        self.close_cookies_banner(
+    def close_cookies_banner(self, element):
+        """"""
+        self.close_selenium_element(
             element=element,
             xpath_to_search=self.cookies_close_xpath,
         )
-        return self.driver.page_source
 
-    def close_cookies_banner(self, element, xpath_to_search):
+    def close_selenium_element(self, element, xpath_to_search):
         """"""
         if_banner_in_html = self.if_xpath_in_element(
             html_element=element, xpath_to_search=xpath_to_search
         )
         if if_banner_in_html:
-            logging.info("Cookies banner found, closing...")
+            logging.info("WebElement found, closing...")
             try:
                 cookies_close_button = self.find_selenium_element(
                     xpath_to_search=xpath_to_search
                 )
                 self.initialize_html_element(cookies_close_button)
-                logging.info("Successfully closed cookies banner.")
+                logging.info("Successfully closed WebElement.")
             except Exception as e:
-                logging.error(f"(close_cookies_banner) Some other exception: {e}")
+                logging.error(f"(close_selenium_element) Some other exception: {e}")
         else:
-            logging.info("No cookies banner to click, passing...")
+            logging.info("No WebElement to click, passing...")
 
     def find_all_products(self, html_element):
         """
@@ -114,7 +108,7 @@ class EcommerceScraper(BaseScraper):
             logging.error("(find_all_products) Missing critical Xpathses.")
             return None
 
-    def find_products_for_all_pages(self):
+    def find_products_for_all_pages_selenium(self):
         """
         Parse all products for all pages in specified page.
         Relies on Selenium since it's only clicking on next page button.
@@ -127,14 +121,18 @@ class EcommerceScraper(BaseScraper):
         Produces a generator of tuples with Product (url, name).
         """
 
+        current_page = 1
         element = self.parse_driver_response()
-        current_page_number = self.find_all_elements(
+        current_page_number_from_xpath = self.find_all_elements(
             html_element=element,
             xpath_to_search=self.current_product_page_xpath,
+            ignore_not_found_errors=True,
         )
-        logging.info(f"Current page: {current_page_number[0].text_content().strip()}")
-        products = self.find_all_products(html_element=element)
+        logging.info(
+            f"Current page; XPath: {current_page_number_from_xpath[0].text_content().strip() if current_page_number_from_xpath != None else 1} Counted: {current_page}"
+        )
 
+        products = self.find_all_products(html_element=element)
         for prod in products:
             yield prod
 
@@ -150,16 +148,19 @@ class EcommerceScraper(BaseScraper):
                 xpath_to_search=self.next_product_page_button_xpath,
                 ignore_not_found_errors=True,
             )
+
+            current_page += 1
             new_element = self.parse_driver_response()
-            current_page_number = self.find_all_elements(
+            current_page_number_from_xpath = self.find_all_elements(
                 html_element=new_element,
                 xpath_to_search=self.current_product_page_xpath,
+                ignore_not_found_errors=True,
             )
             logging.info(
-                f"Current page: {current_page_number[0].text_content().strip()}"
+                f"Current page; XPath: {current_page_number_from_xpath[0].text_content().strip() if current_page_number_from_xpath != None else 1} Counted: {current_page}"
             )
-            products = self.find_all_products(html_element=element)
 
+            products = self.find_all_products(html_element=element)
             for prod in products:
                 yield prod
 

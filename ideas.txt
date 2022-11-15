@@ -1,0 +1,10 @@
+in analytic module:
+-aktualne tempo wzrostu ceny
+-sredni przyrost dzienny
+-prognozowana cena na dzien
+
+average_price_change_daily = sum(daily_price_change) / count(daily_price_change)
+
+
+for day in range(1, 365):
+    daily_price_change = random.uniform(-1.25, 1.25)

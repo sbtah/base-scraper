@@ -12,6 +12,7 @@ class KiddyMoon(EcommerceScraper):
 
     @property
     def main_url(self):
+        """Main url of site from which scraping will start."""
         return "https://kiddymoon.pl/"
 
     @property
