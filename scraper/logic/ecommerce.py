@@ -189,22 +189,29 @@ class EcommerceScraper(BaseScraper):
                 xpath_to_search=xpath_to_search,
             )
 
-        if categories_list:
-            self.logger.info(
-                f"URLS/Names list created, returned {len(categories_list)} elements."  # noqa
-            )
-            if extract_with_selenium == False:
-                return (
-                    parser_used(HtmlElement=x, SeleniumWebElement=None)
-                    for x in categories_list
+        if parser_used is not None:
+            if categories_list:
+                self.logger.info(
+                    f"URLS/Names list created, returned {len(categories_list)} elements."  # noqa
                 )
+                if extract_with_selenium == False:
+                    return (
+                        parser_used(HtmlElement=x, SeleniumWebElement=None)
+                        for x in categories_list
+                    )
+                else:
+                    return (
+                        parser_used(SeleniumWebElement=x, HtmlElement=None)
+                        for x in categories_list
+                    )
             else:
-                return (
-                    parser_used(SeleniumWebElement=x, HtmlElement=None)
-                    for x in categories_list
-                )
+                self.logger.info(f"Failed loading URLS/Names list from HTML.")
+                return None
         else:
-            self.logger.info(f"Failed loading URLS/Names list from HTML,")
+            self.logger.error(
+                f"Attempting to extract urls without specified parser function. Quiting..."
+            )
+            self.quit_and_cleanup()
             return None
 
     def find_all_category_pages(

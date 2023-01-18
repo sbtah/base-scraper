@@ -6,7 +6,8 @@ from scraper.options.settings import USER_AGENTS
 
 class ValidationCrawler:
     """
-    Simple crawler used for validating pages for status codes before starting Selenium scraper.
+    Simple crawler used for validating pages for status codes,
+    before starting Selenium scraper.
     """
 
     def __init__(self, logger=logger):

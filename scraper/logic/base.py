@@ -169,7 +169,7 @@ class BaseScraper:
             self.logger.error(f"Error parsing page to HTML: {e}")
             return None
 
-    def do_cleanup(self):
+    def quit_and_cleanup(self):
         """
         Delete all cookies and quit Selenium driver.
         """
@@ -373,6 +373,8 @@ class BaseScraper:
                     )
                     return None
             except ElementNotVisibleException:
+                # TODO :
+                # WORK over this...
                 self.logger.error(
                     "ELEMENT NOT VISIBLE OCCURRED IMPLEMENT PROPER MECHANIC!"  # noqa
                 )
