@@ -390,6 +390,8 @@ class BaseScraper:
             )
             return None
 
+    # TODO:
+    # This is obsolete ? since I can use find_element.
     def if_xpath_in_element(self, html_element, xpath_to_search):
         """
         Looks for single object within provided HTMLElement.

@@ -16,16 +16,22 @@ class EcommerceScraper(BaseScraper):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    # TODO:
+    # Move to ScrapingScraper
     @property
     def main_url(self):
         """Main Url for the tracked Website."""
         raise NotImplementedError
 
+    # TODO:
+    # Move to ScrapingScraper
     @property
     def main_categories_url(self):
         """Url from which discovery of CategoryPages is starting."""
         raise NotImplementedError
 
+    # TODO:
+    # Move to ScrapingScraper
     @property
     def blog_page_url(self):
         """Url from which discovery of BlogPage is starting."""
