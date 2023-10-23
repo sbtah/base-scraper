@@ -5,7 +5,7 @@ from scraper.helpers.randoms import (
     random_sleep_small,
     random_sleep_small_l2,
 )
-from scraper.logic.base import BaseScraper
+from scraper.logic.selenium import BaseScraper
 
 
 class EcommerceScraper(BaseScraper):
