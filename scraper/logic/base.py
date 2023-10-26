@@ -1,8 +1,9 @@
-from scraper.helpers.logger import logger
+import time
 from random import choice
 from typing import List
-from scraper.options.settings import USER_AGENTS, RESOLUTIONS
-import time
+
+from scraper.helpers.logger import logger
+from scraper.options.settings import RESOLUTIONS, USER_AGENTS
 
 
 class BaseScraper:
